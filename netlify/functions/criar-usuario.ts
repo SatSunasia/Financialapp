@@ -16,8 +16,9 @@ export const handler: Handler = async (event) => {
 
   const supabaseUrl = process.env.SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !serviceRoleKey) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY não configurados no Netlify.' }) }
+  const anonKey = process.env.VITE_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !serviceRoleKey || !anonKey) {
+    return { statusCode: 500, body: JSON.stringify({ error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / VITE_SUPABASE_ANON_KEY não configurados no Netlify.' }) }
   }
 
   const token = event.headers.authorization?.replace('Bearer ', '')
@@ -25,12 +26,16 @@ export const handler: Handler = async (event) => {
     return { statusCode: 401, body: JSON.stringify({ error: 'Não autenticado.' }) }
   }
 
-  const admin = createClient(supabaseUrl, serviceRoleKey)
-
-  const { data: quemChama, error: erroToken } = await admin.auth.getUser(token)
+  // Verificar o token de quem chama precisa ser feito com a chave pública —
+  // usar a service_role aqui dá "Auth session missing!" (comportamento
+  // conhecido do supabase-js). A service_role só entra depois, já validado.
+  const clienteAuth = createClient(supabaseUrl, anonKey)
+  const { data: quemChama, error: erroToken } = await clienteAuth.auth.getUser(token)
   if (erroToken || !quemChama.user) {
     return { statusCode: 401, body: JSON.stringify({ error: 'Sessão inválida.', detalhe: erroToken?.message }) }
   }
+
+  const admin = createClient(supabaseUrl, serviceRoleKey)
 
   const { data: perfilQuemChama } = await admin
     .from('usuarios')
