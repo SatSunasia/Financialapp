@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 
 export function Login() {
-  const { signIn, solicitarRecuperacaoSenha } = useAuth()
+  const { signIn, solicitarRecuperacaoSenha, contaDesativada } = useAuth()
   const [modo, setModo] = useState<'login' | 'recuperar'>('login')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
@@ -62,6 +62,9 @@ export function Login() {
           Senha
           <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required />
         </label>
+        {contaDesativada && (
+          <p className="erro">Esta conta foi desativada. Fale com um administrador do sistema.</p>
+        )}
         {erro && <p className="erro">{erro}</p>}
         <button type="submit" disabled={enviando}>{enviando ? 'Entrando…' : 'Entrar'}</button>
         <button type="button" className="link-secundario" onClick={() => { setModo('recuperar'); setErro(null) }}>

@@ -81,6 +81,35 @@ function TabelaUsuarios({ euId }: { euId: string }) {
     setSalvandoId(null)
   }
 
+  async function excluir(u: Usuario) {
+    const confirmado = confirm(
+      `Excluir "${u.nome}" (${u.email})?\n\nSó funciona se essa pessoa nunca criou pedido, orçamento ou aprovação — caso contrário, desative em vez de excluir.`
+    )
+    if (!confirmado) return
+
+    setSalvandoId(u.id)
+    setErro(null)
+
+    const { data: sessao } = await supabase.auth.getSession()
+    const token = sessao.session?.access_token
+
+    const resp = await fetch('/.netlify/functions/excluir-usuario', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ userId: u.id }),
+    })
+    const resultado = await resp.json()
+
+    if (!resp.ok) {
+      setErro(resultado.error ?? 'Erro ao excluir usuário.')
+      setSalvandoId(null)
+      return
+    }
+
+    setUsuarios((lista) => lista.filter((x) => x.id !== u.id))
+    setSalvandoId(null)
+  }
+
   return (
     <>
       <p className="vazio">
@@ -105,6 +134,7 @@ function TabelaUsuarios({ euId }: { euId: string }) {
                 <th>Setor</th>
                 <th>Ativo</th>
                 <th>Admin</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -161,6 +191,19 @@ function TabelaUsuarios({ euId }: { euId: string }) {
                       title={u.id === euId ? 'Não é possível remover seu próprio acesso de admin por aqui.' : undefined}
                       onChange={(e) => salvar(u.id, { is_admin: e.target.checked })}
                     />
+                  </td>
+                  <td>
+                    {u.id !== euId && (
+                      <button
+                        type="button"
+                        className="rejeitar"
+                        disabled={salvandoId === u.id}
+                        onClick={() => excluir(u)}
+                        style={{ padding: '0.3rem 0.7rem', fontSize: '0.8rem' }}
+                      >
+                        Excluir
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

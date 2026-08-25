@@ -20,6 +20,7 @@ drop function if exists fn_log_status_pedido() cascade;
 drop function if exists fn_touch_updated_at() cascade;
 drop function if exists perfil_atual() cascade;
 drop function if exists is_admin_atual() cascade;
+drop function if exists usuario_ativo() cascade;
 drop function if exists pedidos_pendentes_gestor() cascade;
 
 drop type if exists status_pedido cascade;
@@ -240,6 +241,9 @@ alter table pedidos_compra enable row level security;
 alter table cotacoes enable row level security;
 alter table historico_status enable row level security;
 
+-- As três funções abaixo checam `ativo` junto — um usuário desativado
+-- (Administração → Usuários → desmarcar "Ativo") perde todo privilégio
+-- baseado em perfil/admin automaticamente, não só na tela, mas no banco.
 create or replace function perfil_atual()
 returns perfil_usuario
 language sql
@@ -247,7 +251,7 @@ security definer
 stable
 set search_path = public
 as $$
-  select perfil from public.usuarios where id = auth.uid();
+  select perfil from public.usuarios where id = auth.uid() and ativo;
 $$;
 
 create or replace function is_admin_atual()
@@ -257,7 +261,17 @@ security definer
 stable
 set search_path = public
 as $$
-  select coalesce((select is_admin from public.usuarios where id = auth.uid()), false);
+  select coalesce((select is_admin from public.usuarios where id = auth.uid() and ativo), false);
+$$;
+
+create or replace function usuario_ativo()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select coalesce((select ativo from public.usuarios where id = auth.uid()), false);
 $$;
 
 -- Tabelas de referência: leitura livre para autenticados
@@ -278,10 +292,10 @@ create policy "admin_edita_qualquer_usuario" on usuarios for update to authentic
 create policy "leitura_pedidos" on pedidos_compra for select to authenticated using (true);
 
 create policy "colaborador_cria_pedido" on pedidos_compra for insert to authenticated
-  with check (solicitante_id = auth.uid());
+  with check (solicitante_id = auth.uid() and usuario_ativo());
 
 create policy "solicitante_cancela_proprio" on pedidos_compra for update to authenticated
-  using (solicitante_id = auth.uid() and status not in ('concluido', 'cancelado', 'encaminhado_erp'))
+  using (solicitante_id = auth.uid() and usuario_ativo() and status not in ('concluido', 'cancelado', 'encaminhado_erp'))
   with check (solicitante_id = auth.uid());
 
 -- is_admin é um bypass de verdade em todas as etapas do fluxo (orçar,

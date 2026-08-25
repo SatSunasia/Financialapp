@@ -8,6 +8,7 @@ interface AuthState {
   usuario: Usuario | null
   loading: boolean
   recuperandoSenha: boolean
+  contaDesativada: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   solicitarRecuperacaoSenha: (email: string) => Promise<{ error: string | null }>
@@ -21,10 +22,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null)
   const [loading, setLoading] = useState(true)
   const [recuperandoSenha, setRecuperandoSenha] = useState(false)
+  const [contaDesativada, setContaDesativada] = useState(false)
 
   async function carregarUsuario(userId: string) {
     const { data } = await supabase.from('usuarios').select('*').eq('id', userId).single()
-    setUsuario(data as Usuario | null)
+    const encontrado = data as Usuario | null
+    if (encontrado && !encontrado.ativo) {
+      setContaDesativada(true)
+      setUsuario(null)
+      await supabase.auth.signOut()
+      return
+    }
+    setUsuario(encontrado)
   }
 
   useEffect(() => {
@@ -48,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function signIn(email: string, password: string) {
+    setContaDesativada(false)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error?.message ?? null }
   }
@@ -71,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, usuario, loading, recuperandoSenha, signIn, signOut, solicitarRecuperacaoSenha, definirNovaSenha }}
+      value={{ session, usuario, loading, recuperandoSenha, contaDesativada, signIn, signOut, solicitarRecuperacaoSenha, definirNovaSenha }}
     >
       {children}
     </AuthContext.Provider>
