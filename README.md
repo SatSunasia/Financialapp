@@ -30,14 +30,15 @@ Cada mudança de status é registrada automaticamente em `historico_status`
 
 ## 2. Criar os primeiros usuários
 
-O cadastro de login fica em **Authentication → Users** no painel do
-Supabase (crie por e-mail/senha, ou habilite auto-cadastro depois). Ao
-criar um usuário, um gatilho já cria a linha correspondente em `usuarios`
-com perfil `colaborador`. Para promover alguém a Compras/Gestor/Financeiro,
-rode no SQL Editor:
+Antes de ter um admin com acesso à tela de "Criar novo usuário" dentro do
+próprio app (item 4.1), o primeiro usuário precisa ser criado direto no
+Supabase: **Authentication → Users → Add user** (marque "Auto Confirm
+User"). Ao criar, um gatilho já cria a linha correspondente em `usuarios`
+com perfil `colaborador`. Para promover alguém a admin (o que libera criar
+os próximos usuários pela própria tela de Administração):
 
 ```sql
-update usuarios set perfil = 'compras' where id = 'uuid-do-usuario';
+update usuarios set is_admin = true where id = 'uuid-do-usuario';
 ```
 
 (pegue o `uuid` na tabela `usuarios` ou em Authentication → Users)
@@ -59,6 +60,28 @@ npm run dev
 5. Deploy. Compartilhe o link do site com as pessoas — cada uma faz login
    com o e-mail/senha cadastrado no Supabase.
 
+### 4.1 Criar usuários pela tela de Administração (sem precisar do Supabase)
+
+A tela de Administração tem um botão "+ Criar novo usuário", que chama a
+Netlify Function [`criar-usuario.ts`](netlify/functions/criar-usuario.ts).
+Pra isso funcionar, adicione mais duas variáveis de ambiente no Netlify
+(**Site settings → Environment variables**):
+
+- `SUPABASE_URL` — a mesma URL do `VITE_SUPABASE_URL` (mas **sem** o
+  prefixo `VITE_`, porque essa variável só é usada no servidor — não
+  precisa e não deve ir para o código do navegador).
+- `SUPABASE_SERVICE_ROLE_KEY` — em Supabase **Settings → API → Project
+  API keys**, a chave `service_role` (ou `secret`, no formato mais novo
+  `sb_secret_...`). **Essa chave é diferente da anon/publishable e dá
+  acesso total ao banco, ignorando toda regra de segurança (RLS).**
+  Nunca cole ela no `.env` do projeto, nunca no código, nunca em lugar
+  público — só nessa variável de ambiente do Netlify (marque a opção
+  "Contains secret values" se o Netlify oferecer isso).
+
+Sem essas duas variáveis, o botão "Criar novo usuário" aparece mas dá erro
+ao usar — o resto do app funciona normalmente. Nesse caso, continue
+criando usuários direto no Supabase (item 2) enquanto não configurar isso.
+
 ## 5. Espelho no Google Sheets (opcional)
 
 O banco (Supabase) é sempre a fonte real dos dados — é ele quem garante
@@ -70,9 +93,11 @@ fica simplesmente desligada e o app funciona normalmente.
 
 ## O que ainda falta (próximos passos sugeridos)
 
-- Tela de administração para cadastrar/editar Fornecedores, Empresas e
-  Setores (hoje só dá para inserir via SQL Editor do Supabase).
-- Tela de administração para promover perfil de usuário (hoje via SQL).
+- Tela de administração para cadastrar/editar Fornecedores (Empresas e
+  Setores já têm tela própria; Fornecedores hoje só via SQL Editor).
+- Configurar SMTP próprio no Supabase para o "Esqueci minha senha"
+  entregar e-mail de verdade (o padrão do Supabase não entrega pra
+  ninguém fora da equipe do projeto).
 - Anexar arquivos ao pedido/orçamento (Supabase Storage resolve isso bem).
 - Notificação por e-mail nas trocas de status (Supabase tem integração
   com serviços de e-mail, ou dá para usar uma Netlify Function).

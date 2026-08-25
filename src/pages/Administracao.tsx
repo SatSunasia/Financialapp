@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { PERFIL_LABEL, type Empresa, type PerfilUsuario, type Setor, type Usuario } from '../types/database'
@@ -84,11 +84,11 @@ function TabelaUsuarios({ euId }: { euId: string }) {
   return (
     <>
       <p className="vazio">
-        Perfil, setor/empresa e status dos usuários do sistema. Para criar um usuário novo, use{' '}
-        <strong>Supabase → Authentication → Users</strong> (ver README) — ele aparece aqui
-        automaticamente depois do primeiro login. O setor/empresa aqui é o que define para qual
-        gestor os pedidos desse usuário vão (ver aba "Gestor por Setor").
+        Perfil, setor/empresa e status dos usuários do sistema. O setor/empresa aqui é o que
+        define para qual gestor os pedidos desse usuário vão (ver aba "Gestor por Setor").
       </p>
+
+      <NovoUsuarioForm onCriado={carregar} />
 
       {erro && <p className="erro">{erro}</p>}
       {carregando && <p className="vazio">Carregando…</p>}
@@ -169,5 +169,85 @@ function TabelaUsuarios({ euId }: { euId: string }) {
         </div>
       )}
     </>
+  )
+}
+
+function NovoUsuarioForm({ onCriado }: { onCriado: () => void }) {
+  const [aberto, setAberto] = useState(false)
+  const [form, setForm] = useState({ nome: '', email: '', senha: '', perfil: 'colaborador' as PerfilUsuario })
+  const [erro, setErro] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
+
+  async function criar(e: FormEvent) {
+    e.preventDefault()
+    setErro(null)
+
+    if (!form.email || !form.senha) {
+      setErro('Preencha e-mail e senha.')
+      return
+    }
+
+    setEnviando(true)
+
+    const { data: sessao } = await supabase.auth.getSession()
+    const token = sessao.session?.access_token
+
+    const resp = await fetch('/.netlify/functions/criar-usuario', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ email: form.email, senha: form.senha, nome: form.nome || undefined }),
+    })
+    const resultado = await resp.json()
+
+    if (!resp.ok) {
+      setErro(resultado.error ?? 'Erro ao criar usuário.')
+      setEnviando(false)
+      return
+    }
+
+    if (form.perfil !== 'colaborador') {
+      await supabase.from('usuarios').update({ perfil: form.perfil }).eq('id', resultado.id)
+    }
+
+    setEnviando(false)
+    setForm({ nome: '', email: '', senha: '', perfil: 'colaborador' })
+    setAberto(false)
+    onCriado()
+  }
+
+  if (!aberto) {
+    return (
+      <button type="button" onClick={() => setAberto(true)} style={{ marginBottom: '1rem' }}>
+        + Criar novo usuário
+      </button>
+    )
+  }
+
+  return (
+    <form className="card form-grid" onSubmit={criar} style={{ marginBottom: '1rem' }}>
+      <label>
+        Nome (opcional)
+        <input value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} />
+      </label>
+      <label>
+        E-mail *
+        <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required />
+      </label>
+      <label>
+        Senha *
+        <input value={form.senha} onChange={(e) => setForm((f) => ({ ...f, senha: e.target.value }))} placeholder="mínimo 6 caracteres" required />
+      </label>
+      <label>
+        Perfil inicial
+        <select value={form.perfil} onChange={(e) => setForm((f) => ({ ...f, perfil: e.target.value as PerfilUsuario }))}>
+          {PERFIS.map((p) => <option key={p} value={p}>{PERFIL_LABEL[p]}</option>)}
+        </select>
+      </label>
+      {erro && <p className="erro span-2">{erro}</p>}
+      <div className="span-2 acoes">
+        <button type="button" className="rejeitar" onClick={() => setAberto(false)}>Cancelar</button>
+        <button type="submit" disabled={enviando}>{enviando ? 'Criando…' : 'Criar usuário'}</button>
+      </div>
+    </form>
   )
 }
