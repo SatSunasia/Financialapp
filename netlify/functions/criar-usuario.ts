@@ -52,7 +52,7 @@ export const handler: Handler = async (event) => {
   }
 
   if (!event.body) return { statusCode: 400, body: JSON.stringify({ error: 'Corpo vazio.' }) }
-  const { email, senha, nome } = JSON.parse(event.body)
+  const { email, senha, nome, perfil } = JSON.parse(event.body)
 
   if (!email || !senha) {
     return { statusCode: 400, body: JSON.stringify({ error: 'E-mail e senha são obrigatórios.' }) }
@@ -72,5 +72,16 @@ export const handler: Handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: erroCriacao.message }) }
   }
 
-  return { statusCode: 200, body: JSON.stringify({ id: novoUsuario.user?.id }) }
+  const novoId = novoUsuario.user?.id
+
+  // Aplica o perfil escolhido aqui mesmo (com a chave privilegiada, sem
+  // depender de uma segunda chamada do navegador — mais simples e confiável).
+  if (novoId && perfil && perfil !== 'colaborador') {
+    const { error: erroPerfil } = await admin.from('usuarios').update({ perfil }).eq('id', novoId)
+    if (erroPerfil) {
+      return { statusCode: 200, body: JSON.stringify({ id: novoId, avisoPerfil: erroPerfil.message }) }
+    }
+  }
+
+  return { statusCode: 200, body: JSON.stringify({ id: novoId }) }
 }

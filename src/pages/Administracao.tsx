@@ -195,7 +195,7 @@ function NovoUsuarioForm({ onCriado }: { onCriado: () => void }) {
     const resp = await fetch('/.netlify/functions/criar-usuario', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ email: form.email, senha: form.senha, nome: form.nome || undefined }),
+      body: JSON.stringify({ email: form.email, senha: form.senha, nome: form.nome || undefined, perfil: form.perfil }),
     })
     const resultado = await resp.json()
 
@@ -203,10 +203,6 @@ function NovoUsuarioForm({ onCriado }: { onCriado: () => void }) {
       setErro(resultado.error ?? 'Erro ao criar usuário.')
       setEnviando(false)
       return
-    }
-
-    if (form.perfil !== 'colaborador') {
-      await supabase.from('usuarios').update({ perfil: form.perfil }).eq('id', resultado.id)
     }
 
     setEnviando(false)
