@@ -1,0 +1,38 @@
+import { NavLink, Outlet } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+
+export function Layout() {
+  const { usuario, signOut } = useAuth()
+  if (!usuario) return null
+
+  const podeVer = {
+    orcar: usuario.perfil === 'compras',
+    aprovarGestor: usuario.perfil === 'gestor',
+    aprovarFinanceiro: usuario.perfil === 'financeiro',
+    relatorios: usuario.perfil !== 'colaborador' || usuario.is_admin,
+  }
+
+  return (
+    <div className="layout">
+      <header className="topbar">
+        <h1>Pedidos de Compra</h1>
+        <nav>
+          <NavLink to="/novo-pedido">Novo Pedido</NavLink>
+          {podeVer.orcar && <NavLink to="/para-orcar">Para Orçar</NavLink>}
+          {podeVer.aprovarGestor && <NavLink to="/aprovar">Aprovar Orçamento</NavLink>}
+          {podeVer.aprovarFinanceiro && <NavLink to="/aprovar-financeiro">Aprovação Financeira</NavLink>}
+          <NavLink to="/acompanhar">Acompanhar</NavLink>
+          {podeVer.relatorios && <NavLink to="/relatorios">Relatórios</NavLink>}
+          {usuario.is_admin && <NavLink to="/admin">Administração</NavLink>}
+        </nav>
+        <div className="user-box">
+          <span>{usuario.nome} · {usuario.perfil}</span>
+          <button onClick={signOut}>Sair</button>
+        </div>
+      </header>
+      <main>
+        <Outlet />
+      </main>
+    </div>
+  )
+}
