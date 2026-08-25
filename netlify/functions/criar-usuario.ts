@@ -26,21 +26,25 @@ export const handler: Handler = async (event) => {
     return { statusCode: 401, body: JSON.stringify({ error: 'Não autenticado.' }) }
   }
 
-  // Verificar o token de quem chama precisa ser feito com a chave pública —
-  // usar a service_role aqui dá "Auth session missing!" (comportamento
-  // conhecido do supabase-js). A service_role só entra depois, já validado.
-  const clienteAuth = createClient(supabaseUrl, anonKey)
-  const { data: quemChama, error: erroToken } = await clienteAuth.auth.getUser(token)
-  if (erroToken || !quemChama.user) {
-    return { statusCode: 401, body: JSON.stringify({ error: 'Sessão inválida.', detalhe: erroToken?.message }) }
+  // Verifica o token de quem chama com uma chamada direta à API REST do
+  // Supabase (o método do SDK supabase-js `auth.getUser(jwt)` está com um
+  // comportamento inconsistente nesse ambiente de function e retorna "Auth
+  // session missing!" mesmo com um token válido — chamada direta evita isso).
+  const respostaUsuario = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: { Authorization: `Bearer ${token}`, apikey: anonKey },
+  })
+  if (!respostaUsuario.ok) {
+    const detalhe = await respostaUsuario.text()
+    return { statusCode: 401, body: JSON.stringify({ error: 'Sessão inválida.', detalhe }) }
   }
+  const quemChama = await respostaUsuario.json()
 
   const admin = createClient(supabaseUrl, serviceRoleKey)
 
   const { data: perfilQuemChama } = await admin
     .from('usuarios')
     .select('is_admin')
-    .eq('id', quemChama.user.id)
+    .eq('id', quemChama.id)
     .single()
 
   if (!perfilQuemChama?.is_admin) {
