@@ -1,8 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 
 export function Layout() {
   const { usuario, signOut } = useAuth()
+  const { tema, setTema } = useTheme()
   if (!usuario) return null
 
   const podeVer = {
@@ -26,6 +28,20 @@ export function Layout() {
           {usuario.is_admin && <NavLink to="/admin">Administração</NavLink>}
         </nav>
         <div className="user-box">
+          <div className="tema-switch">
+            <button
+              className={'tema-opcao' + (tema === 'light' ? ' ativa' : '')}
+              onClick={() => setTema('light')}
+            >
+              ☀ Tema Branco
+            </button>
+            <button
+              className={'tema-opcao' + (tema === 'dark' ? ' ativa' : '')}
+              onClick={() => setTema('dark')}
+            >
+              ● Tema Preto
+            </button>
+          </div>
           <span>{usuario.nome} · {usuario.perfil}</span>
           <button onClick={signOut}>Sair</button>
         </div>

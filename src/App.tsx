@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import { Layout } from './components/Layout'
 import { Login } from './pages/Login'
 import { NovoPedido } from './pages/NovoPedido'
@@ -37,8 +38,10 @@ function RotasPrivadas() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <RotasPrivadas />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RotasPrivadas />
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
