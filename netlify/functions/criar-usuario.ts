@@ -29,7 +29,7 @@ export const handler: Handler = async (event) => {
 
   const { data: quemChama, error: erroToken } = await admin.auth.getUser(token)
   if (erroToken || !quemChama.user) {
-    return { statusCode: 401, body: JSON.stringify({ error: 'Sessão inválida.' }) }
+    return { statusCode: 401, body: JSON.stringify({ error: 'Sessão inválida.', detalhe: erroToken?.message }) }
   }
 
   const { data: perfilQuemChama } = await admin
