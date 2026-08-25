@@ -284,34 +284,41 @@ create policy "solicitante_cancela_proprio" on pedidos_compra for update to auth
   using (solicitante_id = auth.uid() and status not in ('concluido', 'cancelado', 'encaminhado_erp'))
   with check (solicitante_id = auth.uid());
 
+-- is_admin é um bypass de verdade em todas as etapas do fluxo (orçar,
+-- aprovar orçamento, aprovar financeiro) — um "master admin" não precisa
+-- ter o perfil específico de cada etapa para agir nela.
 create policy "compras_gerencia_cotacao" on pedidos_compra for update to authenticated
-  using (perfil_atual() = 'compras' and status in ('aguardando_cotacao', 'em_cotacao', 'rejeitado_orcamento', 'rejeitado_financeiro'))
-  with check (perfil_atual() = 'compras');
+  using (
+    (perfil_atual() = 'compras' or is_admin_atual())
+    and status in ('aguardando_cotacao', 'em_cotacao', 'rejeitado_orcamento', 'rejeitado_financeiro')
+  )
+  with check (perfil_atual() = 'compras' or is_admin_atual());
 
 -- Gestor só aprova pedidos do Setor+Empresa em que ele é o responsável
 -- designado (tabela setores_empresas) — não qualquer pedido pendente.
--- Admin tem uma válvula de escape para destravar pedidos "órfãos" (sem
--- setor/empresa configurados, ou sem gestor designado ainda).
+-- Admin sempre pode (independente de perfil ou vínculo).
 create policy "gestor_aprova_orcamento" on pedidos_compra for update to authenticated
   using (
-    perfil_atual() = 'gestor'
-    and status = 'aguardando_aprovacao_orcamento'
+    status = 'aguardando_aprovacao_orcamento'
     and (
       is_admin_atual()
-      or exists (
-        select 1 from setores_empresas se
-        where se.setor_id = pedidos_compra.setor_id
-          and se.empresa_id = pedidos_compra.empresa_id
-          and se.gestor_id = auth.uid()
-          and se.ativo
+      or (
+        perfil_atual() = 'gestor'
+        and exists (
+          select 1 from setores_empresas se
+          where se.setor_id = pedidos_compra.setor_id
+            and se.empresa_id = pedidos_compra.empresa_id
+            and se.gestor_id = auth.uid()
+            and se.ativo
+        )
       )
     )
   )
-  with check (perfil_atual() = 'gestor');
+  with check (perfil_atual() = 'gestor' or is_admin_atual());
 
 create policy "financeiro_aprova" on pedidos_compra for update to authenticated
-  using (perfil_atual() = 'financeiro' and status = 'aguardando_aprovacao_financeira')
-  with check (perfil_atual() = 'financeiro');
+  using ((perfil_atual() = 'financeiro' or is_admin_atual()) and status = 'aguardando_aprovacao_financeira')
+  with check (perfil_atual() = 'financeiro' or is_admin_atual());
 
 -- Setores × Empresas × Gestor responsável: leitura livre (a tela de Novo
 -- Pedido e a de admin precisam ler), escrita só para admin.
@@ -359,7 +366,7 @@ $$;
 -- Cotações
 create policy "leitura_cotacoes" on cotacoes for select to authenticated using (true);
 create policy "compras_cria_cotacao" on cotacoes for insert to authenticated
-  with check (perfil_atual() = 'compras');
+  with check (perfil_atual() = 'compras' or is_admin_atual());
 
 -- Histórico: leitura livre. A entrada de "mudança de status" vem sempre do
 -- trigger (garantida mesmo se a UI falhar). Além dela, o usuário autenticado

@@ -6,9 +6,9 @@ export function Layout() {
   if (!usuario) return null
 
   const podeVer = {
-    orcar: usuario.perfil === 'compras',
-    aprovarGestor: usuario.perfil === 'gestor',
-    aprovarFinanceiro: usuario.perfil === 'financeiro',
+    orcar: usuario.perfil === 'compras' || usuario.is_admin,
+    aprovarGestor: usuario.perfil === 'gestor' || usuario.is_admin,
+    aprovarFinanceiro: usuario.perfil === 'financeiro' || usuario.is_admin,
     relatorios: usuario.perfil !== 'colaborador' || usuario.is_admin,
   }
 
