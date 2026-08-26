@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { EasterEggModal } from './EasterEgg'
+import { EasterEggModal, PixelEscondido } from './EasterEgg'
 
 export function Layout() {
   const { usuario, signOut } = useAuth()
@@ -52,7 +52,13 @@ export function Layout() {
       <main>
         <Outlet />
       </main>
-      <EasterEggModal aberto={eggAberto} onFechar={() => setEggAberto(false)} />
+      <EasterEggModal aberto={eggAberto} onFechar={() => setEggAberto(false)} emoji="🥚✨" titulo="Você achou o segredo!">
+        Poucos chegam até esse pixel escondido. Este sistema nasceu de uma planilha,
+        virou um app inteiro — orçamento, aprovações, relatórios e tudo mais — e
+        sobreviveu a um bom número de <code>schema.sql</code> rodados do zero.
+        Obrigado por confiar no processo. 🧡
+      </EasterEggModal>
+      <PixelEscondido />
     </div>
   )
 }
