@@ -1,11 +1,13 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { EasterEgg } from './EasterEgg'
+import { EasterEggModal } from './EasterEgg'
 
 export function Layout() {
   const { usuario, signOut } = useAuth()
   const { tema, setTema } = useTheme()
+  const [eggAberto, setEggAberto] = useState(false)
   if (!usuario) return null
 
   const podeVer = {
@@ -18,7 +20,7 @@ export function Layout() {
   return (
     <div className="layout">
       <header className="topbar">
-        <h1>Pedidos de Compra</h1>
+        <h1><span onClick={() => setEggAberto(true)} style={{ cursor: 'default' }} aria-hidden="true">P</span>edidos de Compra</h1>
         <nav>
           <NavLink to="/novo-pedido">Novo Pedido</NavLink>
           {podeVer.orcar && <NavLink to="/para-orcar">Para Orçar</NavLink>}
@@ -50,7 +52,7 @@ export function Layout() {
       <main>
         <Outlet />
       </main>
-      <EasterEgg />
+      <EasterEggModal aberto={eggAberto} onFechar={() => setEggAberto(false)} />
     </div>
   )
 }
