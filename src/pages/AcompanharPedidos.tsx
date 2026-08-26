@@ -15,8 +15,8 @@ export function AcompanharPedidos() {
   useEffect(() => {
     if (!usuario) return
     let query = supabase.from('pedidos_compra').select('*').order('created_at', { ascending: false })
-    // Colaborador só vê os próprios pedidos; demais perfis acompanham todos.
-    if (usuario.perfil === 'colaborador') {
+    // Colaborador só vê os próprios pedidos; demais perfis (e admin) acompanham todos.
+    if (usuario.perfil === 'colaborador' && !usuario.is_admin) {
       query = query.eq('solicitante_id', usuario.id)
     }
     query.then(({ data }) => {
