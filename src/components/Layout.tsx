@@ -9,6 +9,7 @@ export function Layout() {
   const { usuario, signOut } = useAuth()
   const { tema, setTema } = useTheme()
   const [eggAberto, setEggAberto] = useState(false)
+  const [menuAberto, setMenuAberto] = useState(false)
   if (!usuario) return null
 
   const podeVer = {
@@ -20,9 +21,9 @@ export function Layout() {
 
   return (
     <div className="layout">
-      <header className="topbar">
+      <header className={'topbar' + (menuAberto ? ' menu-aberto' : '')}>
         <h1><span onClick={() => setEggAberto(true)} style={{ cursor: 'default' }} aria-hidden="true">P</span>edidos de Compra</h1>
-        <nav>
+        <nav onClick={() => setMenuAberto(false)}>
           <NavLink to="/novo-pedido">Novo Pedido</NavLink>
           {podeVer.orcar && <NavLink to="/para-orcar">Para Orçar</NavLink>}
           {podeVer.aprovarGestor && <NavLink to="/aprovar">Aprovar Orçamento</NavLink>}
@@ -32,6 +33,7 @@ export function Layout() {
           {usuario.is_admin && <NavLink to="/admin">Administração</NavLink>}
         </nav>
         <div className="user-box">
+          <NotificacoesSino />
           <div className="tema-switch">
             <button
               className={'tema-opcao' + (tema === 'light' ? ' ativa' : '')}
@@ -46,10 +48,16 @@ export function Layout() {
               ● Escuro
             </button>
           </div>
-          <NotificacoesSino />
           <span>{usuario.nome} · {usuario.perfil}</span>
           <button onClick={signOut}>Sair</button>
         </div>
+        <button
+          className="menu-toggle"
+          onClick={() => setMenuAberto((v) => !v)}
+          aria-label={menuAberto ? 'Fechar menu' : 'Abrir menu'}
+        >
+          {menuAberto ? '✕' : '☰'}
+        </button>
       </header>
       <main>
         <Outlet />
