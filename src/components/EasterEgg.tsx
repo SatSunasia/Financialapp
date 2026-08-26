@@ -41,10 +41,7 @@ export function EasterEgg() {
             <p style={{ fontSize: '2rem', margin: 0 }}>🥚✨</p>
             <h3 style={{ margin: '0.5rem 0' }}>Você achou o segredo!</h3>
             <p className="vazio" style={{ margin: '0 0 1rem' }}>
-              Poucos chegam até esse pixel escondido. Este sistema nasceu de uma planilha,
-              virou um app inteiro — orçamento, aprovações, relatórios e tudo mais — e
-              sobreviveu a um bom número de <code>schema.sql</code> rodados do zero.
-              Obrigado por confiar no processo. 🧡
+              Poucos chegam até esse pixel escondido, agora Bora trabalhar !!
             </p>
             <button onClick={() => setAberto(false)}>Fechar</button>
           </div>
