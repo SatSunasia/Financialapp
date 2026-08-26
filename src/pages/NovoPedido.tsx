@@ -81,6 +81,7 @@ export function NovoPedido() {
 
   return (
     <div className="page">
+      {usuario && <p className="boas-vindas">Bem-vindo, {usuario.nome}!</p>}
       <h2>Novo Pedido de Compra</h2>
       <form className="card form-grid" onSubmit={onSubmit}>
         <label className="span-2">
