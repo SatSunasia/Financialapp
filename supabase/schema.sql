@@ -23,6 +23,7 @@ drop function if exists is_admin_atual() cascade;
 drop function if exists usuario_ativo() cascade;
 drop function if exists pedidos_pendentes_gestor() cascade;
 drop function if exists marcar_cotacao_vencedora(uuid) cascade;
+drop function if exists minhas_notificacoes() cascade;
 
 drop type if exists status_pedido cascade;
 drop type if exists perfil_usuario cascade;
@@ -94,6 +95,7 @@ create table usuarios (
   empresa_id uuid references empresas(id),
   ativo boolean not null default true,
   is_admin boolean not null default false,
+  ultima_visualizacao_notificacoes timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
 
@@ -386,6 +388,56 @@ as $$
           and se.ativo
       )
     );
+$$;
+
+-- Feed de notificações (o sino) — reaproveita o historico_status que já é
+-- gravado automaticamente. O que aparece muda por perfil:
+--   Colaborador: tudo que aconteceu nos próprios pedidos.
+--   Compras: pedidos que a pessoa orçou.
+--   Gestor: pedidos em que ela aprovou o orçamento (para acompanhar o
+--           desfecho, ex.: se o financeiro rejeitou depois).
+--   Financeiro: pedidos que chegaram pra aprovação financeira.
+--   Admin: vê tudo.
+-- "Visto/não visto" é calculado no frontend comparando com
+-- usuarios.ultima_visualizacao_notificacoes (atualizado ao abrir o sino).
+create or replace function minhas_notificacoes()
+returns table (
+  id uuid,
+  pedido_id uuid,
+  pedido_numero bigint,
+  descricao_item text,
+  etapa text,
+  novo_status status_pedido,
+  observacao text,
+  created_at timestamptz
+)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select h.id, h.pedido_id, p.numero, p.descricao_item, h.etapa, h.novo_status, h.observacao, h.created_at
+  from historico_status h
+  join pedidos_compra p on p.id = h.pedido_id
+  where
+    p.solicitante_id = auth.uid()
+    or is_admin_atual()
+    or (
+      perfil_atual() = 'compras'
+      and exists (select 1 from cotacoes c where c.pedido_id = p.id and c.criado_por = auth.uid())
+    )
+    or (
+      perfil_atual() = 'gestor'
+      and exists (
+        select 1 from historico_status h2
+        where h2.pedido_id = p.id and h2.usuario_id = auth.uid() and h2.novo_status = 'aguardando_aprovacao_financeira'
+      )
+    )
+    or (
+      perfil_atual() = 'financeiro' and h.novo_status = 'aguardando_aprovacao_financeira'
+    )
+  order by h.created_at desc
+  limit 50;
 $$;
 
 -- Cotações: até 3 por pedido, Compras marca qual delas é a vencedora antes

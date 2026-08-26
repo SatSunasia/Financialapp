@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { EasterEggModal, PixelEscondido } from './EasterEgg'
+import { NotificacoesSino } from './NotificacoesSino'
 
 export function Layout() {
   const { usuario, signOut } = useAuth()
@@ -45,6 +46,7 @@ export function Layout() {
               ● Escuro
             </button>
           </div>
+          <NotificacoesSino />
           <span>{usuario.nome} · {usuario.perfil}</span>
           <button onClick={signOut}>Sair</button>
         </div>

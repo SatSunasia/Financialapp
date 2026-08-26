@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { StatusBadge } from '../components/StatusBadge'
@@ -6,6 +7,7 @@ import type { HistoricoStatus, PedidoCompra } from '../types/database'
 
 export function AcompanharPedidos() {
   const { usuario } = useAuth()
+  const [searchParams] = useSearchParams()
   const [pedidos, setPedidos] = useState<PedidoCompra[]>([])
   const [selecionado, setSelecionado] = useState<PedidoCompra | null>(null)
   const [historico, setHistorico] = useState<HistoricoStatus[]>([])
@@ -17,7 +19,17 @@ export function AcompanharPedidos() {
     if (usuario.perfil === 'colaborador') {
       query = query.eq('solicitante_id', usuario.id)
     }
-    query.then(({ data }) => setPedidos((data as PedidoCompra[]) ?? []))
+    query.then(({ data }) => {
+      const lista = (data as PedidoCompra[]) ?? []
+      setPedidos(lista)
+      // Veio de um clique em notificação (?pedido=NÚMERO) — abre direto nele.
+      const numeroAlvo = searchParams.get('pedido')
+      if (numeroAlvo) {
+        const alvo = lista.find((p) => String(p.numero) === numeroAlvo)
+        if (alvo) selecionar(alvo)
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuario])
 
   async function selecionar(p: PedidoCompra) {

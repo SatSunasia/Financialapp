@@ -34,6 +34,7 @@ export interface Usuario {
   empresa_id: string | null
   ativo: boolean
   is_admin: boolean
+  ultima_visualizacao_notificacoes: string
 }
 
 export const PERFIL_LABEL: Record<PerfilUsuario, string> = {
@@ -134,6 +135,17 @@ export interface RelatorioPedido {
   aprovado_gestor_nome: string | null
   aprovado_financeiro_id: string | null
   aprovado_financeiro_nome: string | null
+}
+
+export interface Notificacao {
+  id: string
+  pedido_id: string
+  pedido_numero: number
+  descricao_item: string
+  etapa: string
+  novo_status: StatusPedido
+  observacao: string | null
+  created_at: string
 }
 
 export interface HistoricoStatus {
