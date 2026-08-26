@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabase'
 import { STATUS_LABEL, type RelatorioPedido, type StatusPedido, type Usuario } from '../types/database'
 import { DATA_MAX, DATA_MIN } from '../lib/mascaras'
+import { CORES_STATUS, GraficoBarras, GraficoLinha, GraficoRosca } from '../components/Graficos'
 
 type Grupo = 'abertos' | 'cancelados' | 'finalizados' | 'aguardando_info'
 
@@ -88,6 +90,60 @@ export function Relatorios() {
       return true
     })
   }, [pedidos, statusSelecionados, solicitanteId, orcadoPorId, aprovadoGestorId, aprovadoFinanceiroId, dataDe, dataAte])
+
+  const porSetor = useMemo(() => {
+    const contagem = new Map<string, number>()
+    for (const p of filtrados) {
+      const rotulo = p.setor_nome ?? 'Sem setor'
+      contagem.set(rotulo, (contagem.get(rotulo) ?? 0) + 1)
+    }
+    return Array.from(contagem, ([rotulo, valor]) => ({ rotulo, valor })).sort((a, b) => b.valor - a.valor).slice(0, 8)
+  }, [filtrados])
+
+  const porGrupo = useMemo(() => {
+    const cores: Record<Grupo, string> = {
+      abertos: '#2a78d6',
+      finalizados: CORES_STATUS.good,
+      aguardando_info: CORES_STATUS.serious,
+      cancelados: CORES_STATUS.muted,
+    }
+    return (Object.keys(GRUPO_LABEL) as Grupo[]).map((g) => ({
+      rotulo: GRUPO_LABEL[g],
+      valor: filtrados.filter((p) => STATUS_DO_GRUPO[g].includes(p.status)).length,
+      cor: cores[g],
+    }))
+  }, [filtrados])
+
+  const porMes = useMemo(() => {
+    const soma = new Map<string, number>()
+    for (const p of filtrados) {
+      const mes = p.data_solicitacao.slice(0, 7)
+      soma.set(mes, (soma.get(mes) ?? 0) + Number(p.valor_estimado))
+    }
+    return Array.from(soma, ([mes, valor]) => ({ rotulo: mes, valor }))
+      .sort((a, b) => a.rotulo.localeCompare(b.rotulo))
+      .slice(-12)
+  }, [filtrados])
+
+  function exportarXlsx() {
+    const linhas = filtrados.map((p) => ({
+      'Nº': p.numero,
+      Descrição: p.descricao_item,
+      Solicitante: p.solicitante_nome ?? '',
+      Empresa: p.empresa_nome ?? '',
+      Setor: p.setor_nome ?? '',
+      Status: STATUS_LABEL[p.status],
+      'Orçado por': p.orcado_por_nome ?? '',
+      'Aprovado (Gestor)': p.aprovado_gestor_nome ?? '',
+      'Aprovado (Financeiro)': p.aprovado_financeiro_nome ?? '',
+      'Valor Estimado': p.valor_estimado,
+      'Data da Solicitação': p.data_solicitacao,
+    }))
+    const planilha = XLSX.utils.json_to_sheet(linhas)
+    const livro = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(livro, planilha, 'Pedidos')
+    XLSX.writeFile(livro, `relatorio-pedidos-${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
 
   function exportarCsv() {
     const cabecalho = ['Nº', 'Descrição', 'Solicitante', 'Empresa', 'Setor', 'Status', 'Orçado por', 'Aprovado (Gestor)', 'Aprovado (Financeiro)', 'Valor Estimado', 'Data da Solicitação']
@@ -197,9 +253,18 @@ export function Relatorios() {
                 <button type="button" onClick={exportarCsv} disabled={filtrados.length === 0}>
                   Exportar CSV ({filtrados.length})
                 </button>
+                <button type="button" onClick={exportarXlsx} disabled={filtrados.length === 0}>
+                  Exportar Excel ({filtrados.length})
+                </button>
               </div>
             </div>
           </div>
+
+          <div className="admin-grid" style={{ marginTop: '1rem' }}>
+            <GraficoBarras titulo="Pedidos por Setor" dados={porSetor} />
+            <GraficoRosca titulo="Distribuição por Status" dados={porGrupo} />
+          </div>
+          <GraficoLinha titulo="Valor solicitado por mês (R$)" dados={porMes} />
 
           <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
             <table className="tabela-admin">
