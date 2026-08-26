@@ -67,9 +67,6 @@ export function Login() {
         )}
         {erro && <p className="erro">{erro}</p>}
         <button type="submit" disabled={enviando}>{enviando ? 'Entrando…' : 'Entrar'}</button>
-        <button type="button" className="link-secundario" onClick={() => { setModo('recuperar'); setErro(null) }}>
-          Esqueci minha senha
-        </button>
       </form>
     </div>
   )
