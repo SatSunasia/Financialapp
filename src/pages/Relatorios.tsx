@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { STATUS_LABEL, type RelatorioPedido, type StatusPedido, type Usuario } from '../types/database'
+import { DATA_MAX, DATA_MIN } from '../lib/mascaras'
 
 type Grupo = 'abertos' | 'cancelados' | 'finalizados' | 'aguardando_info'
 
@@ -185,11 +186,11 @@ export function Relatorios() {
 
               <label>
                 Data da solicitação — de
-                <input type="date" value={dataDe} onChange={(e) => setDataDe(e.target.value)} />
+                <input type="date" min={DATA_MIN} max={DATA_MAX} value={dataDe} onChange={(e) => setDataDe(e.target.value)} />
               </label>
               <label>
                 até
-                <input type="date" value={dataAte} onChange={(e) => setDataAte(e.target.value)} />
+                <input type="date" min={DATA_MIN} max={DATA_MAX} value={dataAte} onChange={(e) => setDataAte(e.target.value)} />
               </label>
 
               <div className="span-2 acoes">

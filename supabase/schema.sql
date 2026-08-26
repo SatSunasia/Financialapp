@@ -22,6 +22,7 @@ drop function if exists perfil_atual() cascade;
 drop function if exists is_admin_atual() cascade;
 drop function if exists usuario_ativo() cascade;
 drop function if exists pedidos_pendentes_gestor() cascade;
+drop function if exists marcar_cotacao_vencedora(uuid) cascade;
 
 drop type if exists status_pedido cascade;
 drop type if exists perfil_usuario cascade;
@@ -166,13 +167,20 @@ create table cotacoes (
   id uuid primary key default gen_random_uuid(),
   pedido_id uuid not null references pedidos_compra(id) on delete cascade,
   fornecedor_id uuid references fornecedores(id),
-  valor numeric not null check (valor > 0),
+  valor numeric not null check (valor > 0 and valor < 10000000),
   data_entrega date,
   forma_pagamento text,
-  observacao text,
+  observacao text check (char_length(observacao) <= 1024),
+  vencedora boolean not null default false,
+  anexo_path text,
+  anexo_nome text,
   criado_por uuid references usuarios(id),
   created_at timestamptz not null default now()
 );
+
+-- Só pode haver uma cotação vencedora por pedido (índice parcial: a
+-- restrição de unicidade só vale para as linhas com vencedora = true).
+create unique index idx_uma_vencedora_por_pedido on cotacoes(pedido_id) where vencedora;
 
 -- ── Histórico de status (auditoria, preenchido automaticamente) ──
 
@@ -281,7 +289,10 @@ create policy "leitura_autenticados_setores" on setores for select to authentica
 create policy "leitura_autenticados_naturezas" on naturezas_pedido for select to authenticated using (true);
 create policy "leitura_autenticados_fornecedores" on fornecedores for select to authenticated using (true);
 create policy "escrita_compras_fornecedores" on fornecedores for insert to authenticated
-  with check (perfil_atual() in ('compras', 'gestor'));
+  with check (perfil_atual() in ('compras', 'gestor') or is_admin_atual());
+create policy "atualiza_compras_fornecedores" on fornecedores for update to authenticated
+  using (perfil_atual() in ('compras', 'gestor') or is_admin_atual())
+  with check (perfil_atual() in ('compras', 'gestor') or is_admin_atual());
 create policy "usuario_edita_proprio_perfil" on usuarios for update to authenticated
   using (id = auth.uid()) with check (id = auth.uid());
 create policy "admin_edita_qualquer_usuario" on usuarios for update to authenticated
@@ -377,10 +388,50 @@ as $$
     );
 $$;
 
--- Cotações
+-- Cotações: até 3 por pedido, Compras marca qual delas é a vencedora antes
+-- de enviar para aprovação. Só dá pra mexer enquanto o pedido ainda está
+-- na fase de orçamento (mesmos status da tela "Para Orçar").
 create policy "leitura_cotacoes" on cotacoes for select to authenticated using (true);
 create policy "compras_cria_cotacao" on cotacoes for insert to authenticated
+  with check (
+    (perfil_atual() = 'compras' or is_admin_atual())
+    and exists (
+      select 1 from pedidos_compra p
+      where p.id = cotacoes.pedido_id
+        and p.status in ('aguardando_cotacao', 'em_cotacao', 'rejeitado_orcamento', 'rejeitado_financeiro')
+    )
+    and (select count(*) from cotacoes c2 where c2.pedido_id = cotacoes.pedido_id) < 3
+  );
+create policy "compras_atualiza_cotacao" on cotacoes for update to authenticated
+  using (
+    (perfil_atual() = 'compras' or is_admin_atual())
+    and exists (
+      select 1 from pedidos_compra p
+      where p.id = cotacoes.pedido_id
+        and p.status in ('aguardando_cotacao', 'em_cotacao', 'rejeitado_orcamento', 'rejeitado_financeiro')
+    )
+  )
   with check (perfil_atual() = 'compras' or is_admin_atual());
+
+-- Troca a cotação vencedora de um pedido de forma atômica (desmarca a
+-- antiga e marca a nova numa transação só) — fazer isso em duas chamadas
+-- separadas do navegador esbarraria no índice único (nunca duas vencedoras
+-- ao mesmo tempo). security invoker: continua passando pela RLS de quem
+-- chama, então só Compras/admin com o pedido ainda em orçamento consegue.
+create or replace function marcar_cotacao_vencedora(cotacao_id uuid)
+returns void
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_pedido_id uuid;
+begin
+  select pedido_id into v_pedido_id from cotacoes where id = cotacao_id;
+  update cotacoes set vencedora = false where pedido_id = v_pedido_id and vencedora;
+  update cotacoes set vencedora = true where id = cotacao_id;
+end;
+$$;
 
 -- Histórico: leitura livre. A entrada de "mudança de status" vem sempre do
 -- trigger (garantida mesmo se a UI falhar). Além dela, o usuário autenticado
@@ -414,11 +465,11 @@ select
   nat.nome as natureza_nome,
   (
     select u.id from cotacoes c join usuarios u on u.id = c.criado_por
-    where c.pedido_id = p.id order by c.created_at desc limit 1
+    where c.pedido_id = p.id order by c.vencedora desc, c.created_at desc limit 1
   ) as orcado_por_id,
   (
     select u.nome from cotacoes c join usuarios u on u.id = c.criado_por
-    where c.pedido_id = p.id order by c.created_at desc limit 1
+    where c.pedido_id = p.id order by c.vencedora desc, c.created_at desc limit 1
   ) as orcado_por_nome,
   (
     select u.id from historico_status h join usuarios u on u.id = h.usuario_id
@@ -447,3 +498,21 @@ left join setores st on st.id = p.setor_id
 left join naturezas_pedido nat on nat.id = p.natureza_pedido_id;
 
 grant select on relatorio_pedidos to authenticated;
+
+-- ── Anexos de cotação (Supabase Storage) ────────────────────────────
+-- Bucket privado — o arquivo só é acessível via link assinado gerado
+-- pelo backend, não por URL pública direta.
+insert into storage.buckets (id, name, public)
+values ('anexos-cotacoes', 'anexos-cotacoes', false)
+on conflict (id) do nothing;
+
+drop policy if exists "leitura_anexos_cotacoes" on storage.objects;
+drop policy if exists "upload_anexos_cotacoes" on storage.objects;
+
+create policy "leitura_anexos_cotacoes" on storage.objects for select to authenticated
+  using (bucket_id = 'anexos-cotacoes');
+create policy "upload_anexos_cotacoes" on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'anexos-cotacoes'
+    and (perfil_atual() = 'compras' or is_admin_atual())
+  );

@@ -106,6 +106,9 @@ export interface Cotacao {
   data_entrega: string | null
   forma_pagamento: string | null
   observacao: string | null
+  vencedora: boolean
+  anexo_path: string | null
+  anexo_nome: string | null
   criado_por: string | null
   created_at: string
 }

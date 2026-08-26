@@ -4,13 +4,15 @@ import { useAuth } from '../contexts/AuthContext'
 import { PERFIL_LABEL, type Empresa, type PerfilUsuario, type Setor, type Usuario } from '../types/database'
 import { EmpresasSetores } from '../components/admin/EmpresasSetores'
 import { VinculosGestor } from '../components/admin/VinculosGestor'
+import { Fornecedores } from '../components/admin/Fornecedores'
 
 const PERFIS: PerfilUsuario[] = ['colaborador', 'compras', 'gestor', 'financeiro']
-const ABAS = ['usuarios', 'cadastros', 'vinculos'] as const
+const ABAS = ['usuarios', 'cadastros', 'fornecedores', 'vinculos'] as const
 type Aba = (typeof ABAS)[number]
 const ABA_LABEL: Record<Aba, string> = {
   usuarios: 'Usuários',
   cadastros: 'Empresas & Setores',
+  fornecedores: 'Fornecedores',
   vinculos: 'Gestor por Setor',
 }
 
@@ -40,6 +42,7 @@ export function Administracao() {
 
       {aba === 'usuarios' && <TabelaUsuarios euId={eu.id} />}
       {aba === 'cadastros' && <EmpresasSetores />}
+      {aba === 'fornecedores' && <Fornecedores />}
       {aba === 'vinculos' && <VinculosGestor />}
     </div>
   )

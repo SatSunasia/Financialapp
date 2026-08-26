@@ -54,10 +54,21 @@ export function AprovacaoPedidos({ titulo, statusAlvo, statusAprovado, statusRej
       .from('cotacoes')
       .select('*')
       .eq('pedido_id', p.id)
+      .order('vencedora', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
     setCotacao((data as Cotacao) ?? null)
+  }
+
+  async function baixarAnexo() {
+    if (!cotacao?.anexo_path) return
+    const { data, error } = await supabase.storage.from('anexos-cotacoes').createSignedUrl(cotacao.anexo_path, 60)
+    if (error || !data) {
+      setMensagem('Erro ao gerar link do anexo: ' + (error?.message ?? ''))
+      return
+    }
+    window.open(data.signedUrl, '_blank')
   }
 
   async function decidir(aprovado: boolean) {
@@ -123,6 +134,9 @@ export function AprovacaoPedidos({ titulo, statusAlvo, statusAprovado, statusRej
                 <p><strong>Data de entrega:</strong> {cotacao.data_entrega}</p>
                 <p><strong>Forma de pagamento:</strong> {cotacao.forma_pagamento}</p>
                 {cotacao.observacao && <p><strong>Observação:</strong> {cotacao.observacao}</p>}
+                {cotacao.anexo_path && (
+                  <button type="button" onClick={baixarAnexo}>Ver anexo ({cotacao.anexo_nome})</button>
+                )}
               </div>
             )}
 
