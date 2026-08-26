@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
+import { EasterEgg } from './EasterEgg'
 
 export function Layout() {
   const { usuario, signOut } = useAuth()
@@ -49,6 +50,7 @@ export function Layout() {
       <main>
         <Outlet />
       </main>
+      <EasterEgg />
     </div>
   )
 }

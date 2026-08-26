@@ -189,7 +189,18 @@ function TabelaUsuarios({ euId }: { euId: string }) {
               {usuarios.map((u) => (
                 <tr key={u.id} style={{ opacity: salvandoId === u.id ? 0.5 : 1 }}>
                   <td>{u.email ?? '—'}</td>
-                  <td>{u.nome}</td>
+                  <td>
+                    <input
+                      key={u.id}
+                      defaultValue={u.nome}
+                      disabled={salvandoId === u.id}
+                      onBlur={(e) => {
+                        const novoNome = e.target.value.trim()
+                        if (novoNome && novoNome !== u.nome) salvar(u.id, { nome: novoNome })
+                      }}
+                      style={{ minWidth: '140px' }}
+                    />
+                  </td>
                   <td>
                     <select
                       value={u.perfil}
