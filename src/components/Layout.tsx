@@ -33,13 +33,13 @@ export function Layout() {
               className={'tema-opcao' + (tema === 'light' ? ' ativa' : '')}
               onClick={() => setTema('light')}
             >
-              ☀ Tema Branco
+              ☀ Claro
             </button>
             <button
               className={'tema-opcao' + (tema === 'dark' ? ' ativa' : '')}
               onClick={() => setTema('dark')}
             >
-              ● Tema Preto
+              ● Escuro
             </button>
           </div>
           <span>{usuario.nome} · {usuario.perfil}</span>

@@ -54,7 +54,7 @@ body {
   flex-direction: column;
   gap: 1rem;
 }
-.login-card h1 { margin: 0 0 0.5rem; font-size: 1.3rem; color: var(--primaria); }
+.login-card h1 { margin: 0 0 0.5rem; font-size: 1.3rem; color: var(--primaria); text-align: center; }
 .link-secundario { background: transparent; color: var(--primaria); padding: 0.2rem; text-decoration: underline; font-size: 0.85rem; align-self: center; }
 
 /* Layout */
@@ -111,8 +111,9 @@ main { flex: 1; padding: 1.5rem; }
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  min-width: 0;
 }
-.form-grid label, .card label { display: flex; flex-direction: column; gap: 0.35rem; font-weight: 600; font-size: 0.85rem; color: var(--texto-suave); }
+.form-grid label, .card label { display: flex; flex-direction: column; gap: 0.35rem; font-weight: 600; font-size: 0.85rem; color: var(--texto-suave); min-width: 0; }
 .span-2 { grid-column: span 2; }
 
 input, select, textarea {
@@ -122,8 +123,10 @@ input, select, textarea {
   border-radius: 6px;
   background: var(--fundo);
   color: var(--texto);
+  width: 100%;
+  min-width: 0;
 }
-textarea { min-height: 70px; resize: vertical; }
+textarea { min-height: 70px; resize: vertical; white-space: pre-wrap; word-break: break-word; }
 
 button {
   font: inherit;

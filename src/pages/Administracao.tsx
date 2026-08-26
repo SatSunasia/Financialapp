@@ -52,6 +52,7 @@ function TabelaUsuarios({ euId }: { euId: string }) {
   const [carregando, setCarregando] = useState(true)
   const [salvandoId, setSalvandoId] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const [senhaGerada, setSenhaGerada] = useState<{ email: string; senha: string } | null>(null)
 
   useEffect(() => { carregar() }, [])
 
@@ -110,6 +111,34 @@ function TabelaUsuarios({ euId }: { euId: string }) {
     setSalvandoId(null)
   }
 
+  async function resetarSenha(u: Usuario) {
+    const confirmado = confirm(`Gerar uma nova senha aleatória para "${u.nome}" (${u.email})?\n\nA senha atual dela deixa de funcionar imediatamente.`)
+    if (!confirmado) return
+
+    setSalvandoId(u.id)
+    setErro(null)
+    setSenhaGerada(null)
+
+    const { data: sessao } = await supabase.auth.getSession()
+    const token = sessao.session?.access_token
+
+    const resp = await fetch('/.netlify/functions/resetar-senha', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ userId: u.id }),
+    })
+    const resultado = await resp.json()
+
+    if (!resp.ok) {
+      setErro(resultado.error ?? 'Erro ao resetar senha.')
+      setSalvandoId(null)
+      return
+    }
+
+    setSenhaGerada({ email: u.email ?? u.nome, senha: resultado.novaSenha })
+    setSalvandoId(null)
+  }
+
   return (
     <>
       <p className="vazio">
@@ -118,6 +147,22 @@ function TabelaUsuarios({ euId }: { euId: string }) {
       </p>
 
       <NovoUsuarioForm onCriado={carregar} />
+
+      {senhaGerada && (
+        <div className="card" style={{ borderColor: 'var(--primaria)' }}>
+          <p style={{ margin: '0 0 0.5rem' }}>
+            Nova senha para <strong>{senhaGerada.email}</strong> — repasse por um canal seguro
+            (a senha antiga já não funciona mais, e ela só aparece aqui uma vez):
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <code style={{ background: 'var(--fundo)', padding: '0.4rem 0.7rem', borderRadius: '6px', fontSize: '1rem' }}>
+              {senhaGerada.senha}
+            </code>
+            <button type="button" onClick={() => navigator.clipboard.writeText(senhaGerada.senha)}>Copiar</button>
+            <button type="button" className="rejeitar" onClick={() => setSenhaGerada(null)}>Fechar</button>
+          </div>
+        </div>
+      )}
 
       {erro && <p className="erro">{erro}</p>}
       {carregando && <p className="vazio">Carregando…</p>}
@@ -192,14 +237,22 @@ function TabelaUsuarios({ euId }: { euId: string }) {
                       onChange={(e) => salvar(u.id, { is_admin: e.target.checked })}
                     />
                   </td>
-                  <td>
+                  <td style={{ display: 'flex', gap: '0.4rem' }}>
+                    <button
+                      type="button"
+                      disabled={salvandoId === u.id}
+                      onClick={() => resetarSenha(u)}
+                      style={{ padding: '0.3rem 0.7rem', fontSize: '0.8rem' }}
+                    >
+                      Reset senha
+                    </button>
                     {u.id !== euId && (
                       <button
                         type="button"
                         className="rejeitar"
                         disabled={salvandoId === u.id}
                         onClick={() => excluir(u)}
-                        style={{ padding: '0.3rem 0.7rem', fontSize: '0.8rem' }}
+                        style={{ padding: '0.3rem 0.7rem', fontSize: '0.8rem', margin: 0 }}
                       >
                         Excluir
                       </button>

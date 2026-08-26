@@ -1,21 +1,24 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { apenasNumeros, formatarCnpjCpf } from '../lib/mascaras'
 import type { NaturezaPedido } from '../types/database'
+
+const FORM_VAZIO = {
+  descricao_item: '',
+  quantidade: '',
+  valor_estimado: '',
+  natureza_pedido_id: '',
+  fornecedor_sugerido: '',
+  cnpj_fornecedor: '',
+  justificativa: '',
+  observacao: '',
+}
 
 export function NovoPedido() {
   const { usuario } = useAuth()
   const [naturezas, setNaturezas] = useState<NaturezaPedido[]>([])
-  const [form, setForm] = useState({
-    descricao_item: '',
-    quantidade: '',
-    valor_estimado: '',
-    natureza_pedido_id: '',
-    fornecedor_sugerido: '',
-    cnpj_fornecedor: '',
-    justificativa: '',
-    observacao: '',
-  })
+  const [form, setForm] = useState(FORM_VAZIO)
   const [mensagem, setMensagem] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
@@ -31,6 +34,11 @@ export function NovoPedido() {
       onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
         setForm((f) => ({ ...f, [nome]: e.target.value })),
     }
+  }
+
+  function limparCampos() {
+    setForm(FORM_VAZIO)
+    setMensagem(null)
   }
 
   async function onSubmit(e: FormEvent) {
@@ -68,10 +76,7 @@ export function NovoPedido() {
     }
 
     setMensagem('Pedido enviado com sucesso!')
-    setForm({
-      descricao_item: '', quantidade: '', valor_estimado: '', natureza_pedido_id: '',
-      fornecedor_sugerido: '', cnpj_fornecedor: '', justificativa: '', observacao: '',
-    })
+    setForm(FORM_VAZIO)
   }
 
   return (
@@ -85,7 +90,13 @@ export function NovoPedido() {
 
         <label>
           Quantidade *
-          <input type="number" min="1" {...campo('quantidade')} required />
+          <input
+            type="text"
+            inputMode="numeric"
+            value={form.quantidade}
+            onChange={(e) => setForm((f) => ({ ...f, quantidade: apenasNumeros(e.target.value, 7) }))}
+            required
+          />
         </label>
         <label>
           Valor Estimado (R$) *
@@ -101,12 +112,18 @@ export function NovoPedido() {
         </label>
         <label>
           Fornecedor (opcional)
-          <input {...campo('fornecedor_sugerido')} placeholder="Opcional" />
+          <input {...campo('fornecedor_sugerido')} maxLength={240} placeholder="Opcional" />
         </label>
 
         <label>
           CNPJ/CPF Fornecedor (opcional)
-          <input {...campo('cnpj_fornecedor')} placeholder="Opcional" />
+          <input
+            type="text"
+            inputMode="numeric"
+            value={form.cnpj_fornecedor}
+            onChange={(e) => setForm((f) => ({ ...f, cnpj_fornecedor: formatarCnpjCpf(e.target.value) }))}
+            placeholder="Opcional"
+          />
         </label>
 
         <label className="span-2">
@@ -122,6 +139,7 @@ export function NovoPedido() {
         {mensagem && <p className="mensagem span-2">{mensagem}</p>}
 
         <div className="span-2 acoes">
+          <button type="button" className="rejeitar" onClick={limparCampos}>Limpar campos</button>
           <button type="submit" disabled={enviando}>{enviando ? 'Enviando…' : 'Enviar Pedido'}</button>
         </div>
       </form>
