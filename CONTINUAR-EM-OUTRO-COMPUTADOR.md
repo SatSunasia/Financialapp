@@ -109,7 +109,7 @@ neste repositório. Admin master atual: `suporte@sunasia.co`.
 
 ## 8. Pendências conhecidas (próximos passos)
 
-- **Backup automático do banco** (o plano gratuito do Supabase não faz backup).
+- **Backup automático do banco**: workflow criado (`.github/workflows/backup-banco.yml`); falta configurar os 2 segredos no GitHub e fazer um teste de restauração. Passo a passo em `supabase/BACKUP-E-RESTAURACAO.md`.
 - Tela para o próprio usuário **trocar a senha** (hoje só o admin reseta).
 - Etapa "Concluir pedido" (Encaminhado ao ERP → Concluído).
 - Feedbacks (Reportar Problema/Sugestão) e métricas extras nos Relatórios.
