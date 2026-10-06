@@ -300,9 +300,32 @@ create policy "usuario_edita_proprio_perfil" on usuarios for update to authentic
 create policy "admin_edita_qualquer_usuario" on usuarios for update to authenticated
   using (is_admin_atual()) with check (is_admin_atual());
 
--- Pedidos: todos autenticados enxergam todos os pedidos (ferramenta interna),
--- mas só quem tem o perfil certo, no status certo, pode alterar.
-create policy "leitura_pedidos" on pedidos_compra for select to authenticated using (true);
+-- Pedidos: Colaborador só vê os próprios; Compras e Financeiro veem todos
+-- (Compras precisa pra orçar; Financeiro por decisão de negócio — é quem
+-- acompanha o histórico completo de todas as empresas); Gestor só vê
+-- pedidos das empresas em que é o responsável designado (setores_empresas);
+-- Admin sempre vê tudo.
+create policy "leitura_pedidos" on pedidos_compra for select to authenticated
+  using (
+    is_admin_atual()
+    or perfil_atual() = 'financeiro'
+    or perfil_atual() = 'compras'
+    or solicitante_id = auth.uid()
+    or (
+      perfil_atual() = 'gestor'
+      and exists (
+        select 1 from setores_empresas se
+        where se.empresa_id = pedidos_compra.empresa_id
+          and se.gestor_id = auth.uid()
+          and se.ativo
+      )
+    )
+  );
+
+-- Só admin exclui um pedido de verdade (cancelar é diferente: é só uma
+-- troca de status, que o próprio solicitante pode fazer).
+create policy "admin_exclui_pedido" on pedidos_compra for delete to authenticated
+  using (is_admin_atual());
 
 create policy "colaborador_cria_pedido" on pedidos_compra for insert to authenticated
   with check (solicitante_id = auth.uid() and usuario_ativo());
@@ -443,7 +466,10 @@ $$;
 -- Cotações: até 3 por pedido, Compras marca qual delas é a vencedora antes
 -- de enviar para aprovação. Só dá pra mexer enquanto o pedido ainda está
 -- na fase de orçamento (mesmos status da tela "Para Orçar").
-create policy "leitura_cotacoes" on cotacoes for select to authenticated using (true);
+-- Espelha a visibilidade do pedido: quem não pode ver o pedido não vê a
+-- cotação dele.
+create policy "leitura_cotacoes" on cotacoes for select to authenticated
+  using (exists (select 1 from pedidos_compra p where p.id = cotacoes.pedido_id));
 create policy "compras_cria_cotacao" on cotacoes for insert to authenticated
   with check (
     (perfil_atual() = 'compras' or is_admin_atual())
@@ -488,7 +514,9 @@ $$;
 -- Histórico: leitura livre. A entrada de "mudança de status" vem sempre do
 -- trigger (garantida mesmo se a UI falhar). Além dela, o usuário autenticado
 -- pode inserir uma entrada de comentário própria (ex.: motivo de rejeição).
-create policy "leitura_historico" on historico_status for select to authenticated using (true);
+-- Espelha a visibilidade do pedido, igual cotacoes acima.
+create policy "leitura_historico" on historico_status for select to authenticated
+  using (exists (select 1 from pedidos_compra p where p.id = historico_status.pedido_id));
 create policy "usuario_comenta_historico" on historico_status for insert to authenticated
   with check (usuario_id = auth.uid());
 

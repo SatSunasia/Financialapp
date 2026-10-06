@@ -63,14 +63,14 @@ export function NotificacoesSino() {
   async function alternarAberto() {
     const vaiAbrir = !aberto
     if (vaiAbrir) calcularPosicao()
-    setAberto(vaiAbrir)
     if (vaiAbrir && usuario) {
       const agora = new Date().toISOString()
-      await supabase.from('usuarios').update({ ultima_visualizacao_notificacoes: agora }).eq('id', usuario.id)
-      // Só atualiza o carimbo da PRÓXIMA sessão — durante essa visita ao
-      // sino, os itens continuam marcados como "não visto" com o carimbo
-      // antigo (senão o pontinho azul sumiria assim que abrisse).
+      // Marca como visto na hora — abrir o sino já reduz o badge e some
+      // com o destaque de "novo" dos itens que estavam pendentes.
+      carimboSessao.current = agora
+      supabase.from('usuarios').update({ ultima_visualizacao_notificacoes: agora }).eq('id', usuario.id)
     }
+    setAberto(vaiAbrir)
   }
 
   function irParaPedido(n: Notificacao) {

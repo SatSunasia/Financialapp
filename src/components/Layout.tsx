@@ -17,6 +17,7 @@ export function Layout() {
     aprovarGestor: usuario.perfil === 'gestor' || usuario.is_admin,
     aprovarFinanceiro: usuario.perfil === 'financeiro' || usuario.is_admin,
     relatorios: usuario.perfil !== 'colaborador' || usuario.is_admin,
+    administracao: usuario.is_admin || usuario.perfil === 'compras',
   }
 
   return (
@@ -30,7 +31,7 @@ export function Layout() {
           {podeVer.aprovarFinanceiro && <NavLink to="/aprovar-financeiro">Aprovação Financeira</NavLink>}
           <NavLink to="/acompanhar">Acompanhar</NavLink>
           {podeVer.relatorios && <NavLink to="/relatorios">Relatórios</NavLink>}
-          {usuario.is_admin && <NavLink to="/admin">Administração</NavLink>}
+          {podeVer.administracao && <NavLink to="/admin">Administração</NavLink>}
         </nav>
         <div className="user-box">
           <NotificacoesSino />

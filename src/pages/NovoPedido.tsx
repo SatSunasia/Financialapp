@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { apenasNumeros, formatarCnpjCpf } from '../lib/mascaras'
+import { apenasNumeros, formatarCnpjCpf, formatarMoeda } from '../lib/mascaras'
 import type { NaturezaPedido } from '../types/database'
 
 const FORM_VAZIO = {
@@ -47,7 +47,7 @@ export function NovoPedido() {
     setMensagem(null)
 
     const quantidade = Number(form.quantidade)
-    const valor = Number(form.valor_estimado)
+    const valor = formatarMoeda(form.valor_estimado).numero
     if (!form.descricao_item || !form.natureza_pedido_id || !form.justificativa || quantidade <= 0 || valor <= 0) {
       setMensagem('Preencha todos os campos obrigatórios (*) com valores maiores que zero.')
       return
@@ -101,7 +101,14 @@ export function NovoPedido() {
         </label>
         <label>
           Valor Estimado (R$) *
-          <input type="number" min="0.01" step="0.01" {...campo('valor_estimado')} required />
+          <input
+            type="text"
+            inputMode="numeric"
+            value={formatarMoeda(form.valor_estimado).texto}
+            onChange={(e) => setForm((f) => ({ ...f, valor_estimado: e.target.value }))}
+            placeholder="R$ 0,00"
+            required
+          />
         </label>
 
         <label>
@@ -137,7 +144,9 @@ export function NovoPedido() {
           <textarea {...campo('observacao')} placeholder="Comentários independentes / planejamento" />
         </label>
 
-        {mensagem && <p className="mensagem span-2">{mensagem}</p>}
+        {mensagem && (
+          <p className={(mensagem.startsWith('Erro') ? 'erro' : 'mensagem-sucesso') + ' span-2'}>{mensagem}</p>
+        )}
 
         <div className="span-2 acoes">
           <button type="button" className="rejeitar" onClick={limparCampos}>Limpar campos</button>

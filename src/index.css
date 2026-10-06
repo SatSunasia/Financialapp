@@ -157,6 +157,16 @@ button.rejeitar { background: var(--vermelho); margin-right: 0.75rem; }
 
 .mensagem { color: var(--primaria); font-weight: 600; }
 .erro { color: var(--vermelho); font-size: 0.85rem; }
+.mensagem-sucesso {
+  text-align: center;
+  background: rgba(92, 184, 92, 0.12);
+  border: 1px solid var(--verde);
+  color: var(--verde);
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding: 0.9rem 1rem;
+  border-radius: 8px;
+}
 
 .tabela-admin { width: 100%; border-collapse: collapse; background: var(--papel); border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; color: var(--texto); }
 .tabela-admin th, .tabela-admin td { text-align: left; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--borda); font-size: 0.9rem; }

@@ -93,11 +93,6 @@ fica simplesmente desligada e o app funciona normalmente.
 
 ## O que ainda falta (próximos passos sugeridos)
 
-- Tela de administração para cadastrar/editar Fornecedores (Empresas e
-  Setores já têm tela própria; Fornecedores hoje só via SQL Editor).
-- Configurar SMTP próprio no Supabase para o "Esqueci minha senha"
-  entregar e-mail de verdade (o padrão do Supabase não entrega pra
-  ninguém fora da equipe do projeto).
-- Anexar arquivos ao pedido/orçamento (Supabase Storage resolve isso bem).
-- Notificação por e-mail nas trocas de status (Supabase tem integração
-  com serviços de e-mail, ou dá para usar uma Netlify Function).
+Envio de e-mail (recuperação de senha, avisos de status) foi eliminado do
+escopo do projeto — não há SMTP configurado nem planejado. Reset de senha
+é feito por um administrador, direto pela tela de Administração.

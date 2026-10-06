@@ -13,6 +13,16 @@ export function limitarValorNumerico(valor: string, maxCaracteres: number): stri
   return limpo.slice(0, maxCaracteres)
 }
 
+// Máscara de moeda "calculadora": dígitos preenchem da direita pra esquerda,
+// os 2 últimos sempre viram centavos (ex.: digitar "123456" mostra "R$ 1.234,56").
+export function formatarMoeda(valorDigitado: string): { texto: string; numero: number } {
+  const digitos = valorDigitado.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+  if (!digitos) return { texto: '', numero: 0 }
+  const numero = Number(digitos) / 100
+  const texto = numero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  return { texto, numero }
+}
+
 // dd/mm/aaaa com ano travado em 4 dígitos — usar como min/max de <input type="date">.
 export const DATA_MIN = '2020-01-01'
 export const DATA_MAX = '2099-12-31'

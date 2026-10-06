@@ -51,6 +51,15 @@ export function AcompanharPedidos() {
     }
   }
 
+  async function excluir(p: PedidoCompra) {
+    if (!confirm(`Excluir DEFINITIVAMENTE o pedido Nº ${p.numero}? Essa ação não pode ser desfeita — orçamentos e histórico dele também são apagados.`)) return
+    const { error } = await supabase.from('pedidos_compra').delete().eq('id', p.id)
+    if (!error) {
+      setSelecionado(null)
+      setPedidos((lista) => lista.filter((x) => x.id !== p.id))
+    }
+  }
+
   const podeCancelar = (p: PedidoCompra) =>
     usuario?.id === p.solicitante_id && !['concluido', 'cancelado', 'encaminhado_erp'].includes(p.status)
 
@@ -76,9 +85,14 @@ export function AcompanharPedidos() {
             <p><strong>Descrição:</strong> {selecionado.descricao_item}</p>
             <p><strong>Valor estimado:</strong> R$ {selecionado.valor_estimado}</p>
 
-            {podeCancelar(selecionado) && (
-              <button className="rejeitar" onClick={() => cancelar(selecionado)}>Cancelar pedido</button>
-            )}
+            <div className="acoes" style={{ justifyContent: 'flex-start' }}>
+              {podeCancelar(selecionado) && (
+                <button className="rejeitar" onClick={() => cancelar(selecionado)}>Cancelar pedido</button>
+              )}
+              {usuario?.is_admin && (
+                <button className="rejeitar" onClick={() => excluir(selecionado)}>Excluir pedido</button>
+              )}
+            </div>
 
             <h4>Linha do tempo</h4>
             <ul className="timeline">

@@ -9,6 +9,7 @@ export function EmpresasSetores() {
   const [novoSetorNome, setNovoSetorNome] = useState('')
   const [novoSetorEmpresa, setNovoSetorEmpresa] = useState('')
   const [erro, setErro] = useState<string | null>(null)
+  const [salvandoId, setSalvandoId] = useState<string | null>(null)
 
   async function carregar() {
     const [{ data: e }, { data: s }] = await Promise.all([
@@ -43,6 +44,15 @@ export function EmpresasSetores() {
 
   const nomeEmpresa = (id: string) => empresas.find((e) => e.id === id)?.razao_social ?? '—'
 
+  async function renomearEmpresa(id: string, razaoSocial: string) {
+    setSalvandoId(id)
+    setErro(null)
+    const { error } = await supabase.from('empresas').update({ razao_social: razaoSocial }).eq('id', id)
+    if (error) setErro(error.message)
+    else setEmpresas((lista) => lista.map((e) => (e.id === id ? { ...e, razao_social: razaoSocial } : e)))
+    setSalvandoId(null)
+  }
+
   return (
     <div className="admin-grid">
       {erro && <p className="erro">{erro}</p>}
@@ -52,7 +62,21 @@ export function EmpresasSetores() {
         <table className="tabela-admin">
           <thead><tr><th>Razão Social</th></tr></thead>
           <tbody>
-            {empresas.map((e) => <tr key={e.id}><td>{e.razao_social}</td></tr>)}
+            {empresas.map((e) => (
+              <tr key={e.id} style={{ opacity: salvandoId === e.id ? 0.5 : 1 }}>
+                <td>
+                  <input
+                    key={e.id}
+                    defaultValue={e.razao_social}
+                    disabled={salvandoId === e.id}
+                    onBlur={(ev) => {
+                      const novoNome = ev.target.value.trim()
+                      if (novoNome && novoNome !== e.razao_social) renomearEmpresa(e.id, novoNome)
+                    }}
+                  />
+                </td>
+              </tr>
+            ))}
             {empresas.length === 0 && <tr><td className="vazio">Nenhuma empresa cadastrada.</td></tr>}
           </tbody>
         </table>

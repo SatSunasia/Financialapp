@@ -9,14 +9,12 @@ import { AprovarPedidos } from './pages/AprovarPedidos'
 import { AprovaFinanceiro } from './pages/AprovaFinanceiro'
 import { AcompanharPedidos } from './pages/AcompanharPedidos'
 import { Administracao } from './pages/Administracao'
-import { NovaSenha } from './pages/NovaSenha'
 import { Relatorios } from './pages/Relatorios'
 
 function RotasPrivadas() {
-  const { session, usuario, loading, recuperandoSenha } = useAuth()
+  const { session, usuario, loading } = useAuth()
 
   if (loading) return <div className="carregando">Carregando…</div>
-  if (recuperandoSenha) return <NovaSenha />
   if (!session) return <Login />
   if (!usuario) return <div className="carregando">Preparando seu acesso…</div>
 

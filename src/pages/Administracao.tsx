@@ -5,11 +5,13 @@ import { PERFIL_LABEL, type Empresa, type PerfilUsuario, type Setor, type Usuari
 import { EmpresasSetores } from '../components/admin/EmpresasSetores'
 import { VinculosGestor } from '../components/admin/VinculosGestor'
 import { Fornecedores } from '../components/admin/Fornecedores'
+import { Dashboard } from '../components/admin/Dashboard'
 
 const PERFIS: PerfilUsuario[] = ['colaborador', 'compras', 'gestor', 'financeiro']
-const ABAS = ['usuarios', 'cadastros', 'fornecedores', 'vinculos'] as const
-type Aba = (typeof ABAS)[number]
+const ABAS_ADMIN = ['dashboard', 'usuarios', 'cadastros', 'fornecedores', 'vinculos'] as const
+type Aba = (typeof ABAS_ADMIN)[number]
 const ABA_LABEL: Record<Aba, string> = {
+  dashboard: 'Dashboard',
   usuarios: 'Usuários',
   cadastros: 'Empresas & Setores',
   fornecedores: 'Fornecedores',
@@ -18,9 +20,12 @@ const ABA_LABEL: Record<Aba, string> = {
 
 export function Administracao() {
   const { usuario: eu } = useAuth()
-  const [aba, setAba] = useState<Aba>('usuarios')
+  // Compras entra só para cadastrar Fornecedores — não vê Usuários,
+  // Empresas & Setores, Gestor por Setor nem o Dashboard.
+  const souSoCompras = !eu?.is_admin && eu?.perfil === 'compras'
+  const [aba, setAba] = useState<Aba>(souSoCompras ? 'fornecedores' : 'dashboard')
 
-  if (!eu?.is_admin) {
+  if (!eu?.is_admin && !souSoCompras) {
     return (
       <div className="page">
         <h2>Administração</h2>
@@ -29,21 +34,26 @@ export function Administracao() {
     )
   }
 
+  const abasVisiveis: Aba[] = souSoCompras ? ['fornecedores'] : [...ABAS_ADMIN]
+
   return (
     <div className="page">
       <h2>Administração</h2>
-      <div className="abas">
-        {ABAS.map((a) => (
-          <button key={a} className={'aba' + (aba === a ? ' ativa' : '')} onClick={() => setAba(a)}>
-            {ABA_LABEL[a]}
-          </button>
-        ))}
-      </div>
+      {abasVisiveis.length > 1 && (
+        <div className="abas">
+          {abasVisiveis.map((a) => (
+            <button key={a} className={'aba' + (aba === a ? ' ativa' : '')} onClick={() => setAba(a)}>
+              {ABA_LABEL[a]}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {aba === 'usuarios' && <TabelaUsuarios euId={eu.id} />}
-      {aba === 'cadastros' && <EmpresasSetores />}
+      {aba === 'dashboard' && eu?.is_admin && <Dashboard />}
+      {aba === 'usuarios' && eu?.is_admin && <TabelaUsuarios euId={eu.id} />}
+      {aba === 'cadastros' && eu?.is_admin && <EmpresasSetores />}
       {aba === 'fornecedores' && <Fornecedores />}
-      {aba === 'vinculos' && <VinculosGestor />}
+      {aba === 'vinculos' && eu?.is_admin && <VinculosGestor />}
     </div>
   )
 }

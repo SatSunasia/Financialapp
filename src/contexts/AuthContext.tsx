@@ -7,12 +7,9 @@ interface AuthState {
   session: Session | null
   usuario: Usuario | null
   loading: boolean
-  recuperandoSenha: boolean
   contaDesativada: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
-  solicitarRecuperacaoSenha: (email: string) => Promise<{ error: string | null }>
-  definirNovaSenha: (novaSenha: string) => Promise<{ error: string | null }>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
@@ -21,7 +18,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [usuario, setUsuario] = useState<Usuario | null>(null)
   const [loading, setLoading] = useState(true)
-  const [recuperandoSenha, setRecuperandoSenha] = useState(false)
   const [contaDesativada, setContaDesativada] = useState(false)
 
   async function carregarUsuario(userId: string) {
@@ -43,8 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
-      if (event === 'PASSWORD_RECOVERY') setRecuperandoSenha(true)
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession)
       if (newSession) {
         carregarUsuario(newSession.user.id)
@@ -66,22 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut()
   }
 
-  async function solicitarRecuperacaoSenha(email: string) {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin,
-    })
-    return { error: error?.message ?? null }
-  }
-
-  async function definirNovaSenha(novaSenha: string) {
-    const { error } = await supabase.auth.updateUser({ password: novaSenha })
-    if (!error) setRecuperandoSenha(false)
-    return { error: error?.message ?? null }
-  }
-
   return (
     <AuthContext.Provider
-      value={{ session, usuario, loading, recuperandoSenha, contaDesativada, signIn, signOut, solicitarRecuperacaoSenha, definirNovaSenha }}
+      value={{ session, usuario, loading, contaDesativada, signIn, signOut }}
     >
       {children}
     </AuthContext.Provider>
