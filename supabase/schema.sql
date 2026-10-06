@@ -1,7 +1,20 @@
 -- Schema do Sistema de Pedido de Compra / Orçamento / Aprovação
--- Rodar no SQL Editor do Supabase (Postgres).
--- Este arquivo é seguro de rodar mais de uma vez: ele apaga o que já
--- existir (tabelas, tipos, funções) antes de recriar do zero.
+--
+-- ╔══════════════════════════════════════════════════════════════════╗
+-- ║  PERIGO: ESTE ARQUIVO APAGA TODOS OS DADOS DO BANCO.             ║
+-- ║  Ele derruba as tabelas (pedidos, cotações, histórico, usuários, ║
+-- ║  fornecedores, empresas, setores) e recria vazio. Perfis, admins ║
+-- ║  e vínculos de gestor voltam ao padrão.                          ║
+-- ║                                                                  ║
+-- ║  Use SOMENTE para criar um banco novo e vazio (um projeto novo   ║
+-- ║  no Supabase). NUNCA rode no banco de produção em uso.           ║
+-- ║                                                                  ║
+-- ║  Para mudar um banco que já está em uso, rode só as migrações    ║
+-- ║  numeradas da pasta supabase/ (002, 003, 004, 005…), em ordem.   ║
+-- ╚══════════════════════════════════════════════════════════════════╝
+--
+-- Este arquivo é a referência da estrutura completa e é mantido em
+-- sincronia com as migrações. Rodar no SQL Editor do Supabase (Postgres).
 
 drop trigger if exists trg_novo_usuario on auth.users;
 

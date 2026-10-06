@@ -21,6 +21,11 @@ Cada mudança de status é registrada automaticamente em `historico_status`
 2. Em **SQL Editor**, cole e rode o conteúdo de [`supabase/schema.sql`](supabase/schema.sql).
    Isso cria as tabelas, os status, o gatilho de histórico e as regras de
    acesso por perfil (Row Level Security).
+   **Só para um projeto novo e vazio:** esse arquivo apaga todos os dados.
+   Em banco já em uso, rode apenas as migrações numeradas de `supabase/`.
+
+> Retomando o projeto em outra máquina? Veja
+> [`CONTINUAR-EM-OUTRO-COMPUTADOR.md`](CONTINUAR-EM-OUTRO-COMPUTADOR.md).
 3. Em **Settings → API**, copie `Project URL` e a chave `anon public`.
 4. Copie `.env.example` para `.env` e preencha:
    ```
