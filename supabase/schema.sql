@@ -24,6 +24,7 @@ drop function if exists usuario_ativo() cascade;
 drop function if exists pedidos_pendentes_gestor() cascade;
 drop function if exists marcar_cotacao_vencedora(uuid) cascade;
 drop function if exists minhas_notificacoes() cascade;
+drop function if exists total_cotacoes_do_pedido(uuid) cascade;
 
 drop type if exists status_pedido cascade;
 drop type if exists perfil_usuario cascade;
@@ -470,6 +471,19 @@ $$;
 -- cotação dele.
 create policy "leitura_cotacoes" on cotacoes for select to authenticated
   using (exists (select 1 from pedidos_compra p where p.id = cotacoes.pedido_id));
+-- A contagem do limite de 3 usa uma função security definer: consultar a
+-- própria tabela cotacoes dentro da policy dava "infinite recursion detected
+-- in policy for relation cotacoes" (corrigido na migração 004).
+create or replace function total_cotacoes_do_pedido(p_pedido uuid)
+returns integer
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select count(*)::int from public.cotacoes where pedido_id = p_pedido;
+$$;
+
 create policy "compras_cria_cotacao" on cotacoes for insert to authenticated
   with check (
     (perfil_atual() = 'compras' or is_admin_atual())
@@ -478,7 +492,7 @@ create policy "compras_cria_cotacao" on cotacoes for insert to authenticated
       where p.id = cotacoes.pedido_id
         and p.status in ('aguardando_cotacao', 'em_cotacao', 'rejeitado_orcamento', 'rejeitado_financeiro')
     )
-    and (select count(*) from cotacoes c2 where c2.pedido_id = cotacoes.pedido_id) < 3
+    and total_cotacoes_do_pedido(cotacoes.pedido_id) < 3
   );
 create policy "compras_atualiza_cotacao" on cotacoes for update to authenticated
   using (
